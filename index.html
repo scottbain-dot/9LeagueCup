@@ -172,6 +172,52 @@
 
   footer { text-align: center; padding: 24px 16px 40px; color: var(--ink-mute); font-size: 12px; }
   footer .champs { font-weight: 700; color: var(--ink-soft); margin-top: 4px; }
+
+  /* ----- Rounds grouping (base / mobile: stacked) ----- */
+  .rounds { display: flex; flex-direction: column; gap: 16px; }
+
+  /* ============================================================
+     HOVER — laptop is the primary device. Guarded so phones
+     (no real hover) keep their clean tap behaviour untouched.
+     ============================================================ */
+  .row, .game { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  @media (hover: hover) and (pointer: fine) {
+    .row:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+    .game:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+    .league-toggle button:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .league-toggle button.active:hover { background: #fff; color: var(--ink); }
+    .lesson-pick button:hover { border-color: var(--ink-mute); color: var(--ink); }
+    .lesson-pick button.active:hover { color: #fff; }
+  }
+
+  /* ============================================================
+     DESKTOP / LAPTOP — additive layout enhancements (>= 900px).
+     Mobile layout above stays the base; these only widen and
+     reflow for larger pointer-driven screens.
+     ============================================================ */
+  @media (min-width: 900px) {
+    body { font-size: 17px; }
+    .wrap { max-width: 1120px; }
+
+    /* Header: horizontal row — title/sub-tag left, toggle right */
+    header { display: flex; flex-wrap: wrap; align-items: center; column-gap: 24px; }
+    header h1 { order: 1; }
+    .league-toggle { order: 2; margin-left: auto; margin-top: 0; flex: 0 0 auto; width: 100%; max-width: 420px; }
+    header .sub-tag { order: 3; flex-basis: 100%; margin-top: 2px; }
+
+    /* Keep the centred content blocks capped on very wide windows */
+    .view-tabs, main { max-width: 1120px; margin: 0 auto; }
+
+    /* Leaderboard: centred ranked list, a little bigger */
+    .board { max-width: 760px; margin: 0 auto; }
+    .row { grid-template-columns: 64px 1fr auto; padding: 20px 24px; }
+    .row .rank { font-size: 40px; }
+    .row .team { font-size: 23px; }
+    .row .pts .n { font-size: 38px; }
+
+    /* Fixtures: two rounds side by side, banner full width above */
+    .rounds { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  }
 </style>
 </head>
 <body>
@@ -424,8 +470,10 @@ function renderFixtures() {
       <div class="loc ${info.loc.toLowerCase()}">${info.loc === 'Out' ? '🌳 Outside' : '🏠 Inside'}</div>
     </div>`;
 
+  html += `<div class="rounds">`;
   [1, 2].forEach(rd => {
     const r = FIXTURES[L][rd];
+    html += `<div class="round">`;
     html += `<div class="round-label">Round ${rd}</div>`;
     r.games.forEach(g => html += gameCard(g[0], g[1]));
     html += `
@@ -433,7 +481,9 @@ function renderFixtures() {
         🟡 Referee:
         <span class="ref-chip"><span class="dot" style="background:${TEAM_COLOR[r.ref]}"></span>${r.ref}</span>
       </div>`;
+    html += `</div>`;
   });
+  html += `</div>`;
 
   $main.innerHTML = html;
 }
