@@ -8,8 +8,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
   /* ============================================================
-     LEAGUE CUP — leaderboard & fixtures dashboard (display-only)
-     Two sections, each with Performance + Recreational leagues.
+     LEAGUE CUP — leaderboard & schedule dashboard (display-only)
+     Two sections; within each, Performance + Recreational are shown
+     SIDE BY SIDE, colour-coded and sectioned off (no league tab).
      Reads published Standings CSVs from the Google Sheets.
      Fixtures + sports computed client-side (identical every league).
      Responsive: phone-friendly, optimised for laptop screens.
@@ -33,6 +34,14 @@
     --t-green:  #2f9e54;
     --t-blue:   #2f6fd4;
     --t-maroon: #8a3b53;
+
+    /* League panel tints — distinct from every team colour */
+    --lg-perf-bg:   #f2edfb;
+    --lg-perf-line: #e0d4f5;
+    --lg-perf-ink:  #6d28d9;
+    --lg-rec-bg:    #e7f5f2;
+    --lg-rec-line:  #c7e8e1;
+    --lg-rec-ink:   #0e7c6e;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,7 +71,7 @@
   header .sub-tag { font-size: 12px; color: rgba(255,255,255,0.55); margin-top: 5px; letter-spacing: 0.02em; }
 
   .switchers { display: flex; gap: 22px; flex-wrap: wrap; margin-top: 16px; }
-  .switch-group { flex: 1; min-width: 200px; }
+  .switch-group { flex: 1; min-width: 200px; max-width: 460px; }
   .switch-label {
     font-size: 10px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase;
     color: rgba(255,255,255,0.45); margin-bottom: 7px;
@@ -106,6 +115,19 @@
   .refresh.spin svg { animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* ----- League columns (both leagues shown together, colour-coded) ----- */
+  .leagues { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  .league-col { border-radius: 18px; padding: 14px; border: 1px solid var(--line); background: var(--panel); }
+  .league-col.perf { background: var(--lg-perf-bg); border-color: var(--lg-perf-line); }
+  .league-col.rec  { background: var(--lg-rec-bg);  border-color: var(--lg-rec-line); }
+  .league-head {
+    display: inline-flex; align-items: center; gap: 8px; margin: 2px 2px 12px;
+    padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 800;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .league-col.perf .league-head { background: rgba(109,40,217,0.13); color: var(--lg-perf-ink); }
+  .league-col.rec  .league-head { background: rgba(14,124,110,0.13); color: var(--lg-rec-ink); }
+
   /* ----- Leaderboard ----- */
   .board { display: flex; flex-direction: column; gap: 12px; }
   .row {
@@ -126,7 +148,7 @@
   .row .pts .n { font-weight: 800; font-size: 32px; line-height: 1; }
   .row .pts .lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute); }
 
-  /* ----- Fixtures ----- */
+  /* ----- Schedule / fixtures ----- */
   .lesson-pick { display: flex; gap: 7px; margin-bottom: 18px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
   .lesson-pick button {
     flex: none; width: 56px; padding: 9px 0; border-radius: 12px;
@@ -171,7 +193,9 @@
 
   /* ----- States ----- */
   .state { text-align: center; padding: 48px 24px; color: var(--ink-mute); }
+  .state.mini { padding: 30px 14px; }
   .state .big { font-size: 21px; font-weight: 800; color: var(--ink-soft); margin-bottom: 8px; }
+  .state.mini .big { font-size: 17px; }
   .state .hint { font-size: 14px; line-height: 1.6; max-width: 520px; margin: 0 auto; }
   .state code { background: #eef0f3; padding: 2px 7px; border-radius: 6px; font-size: 12px; color: var(--accent); word-break: break-all; }
   .skeleton { background: linear-gradient(100deg, var(--panel) 30%, #eceef1 50%, var(--panel) 70%); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 16px; height: 84px; margin-bottom: 12px; }
@@ -182,7 +206,7 @@
   footer .champs { font-weight: 700; color: var(--ink-soft); margin-top: 4px; }
 
   /* ============================================================
-     DESKTOP / LAPTOP — the primary screen
+     DESKTOP / LAPTOP — the primary screen: leagues sit side by side
      ============================================================ */
   @media (min-width: 900px) {
     body { font-size: 17px; }
@@ -194,24 +218,26 @@
     main { padding: 30px 40px 56px; }
     .sub h2 { font-size: 26px; }
 
-    .board { max-width: 760px; margin: 0 auto; gap: 14px; }
-    .row { grid-template-columns: 70px 1fr auto; padding: 22px 28px; border-left-width: 12px; }
-    .row .rank { font-size: 44px; }
-    .row .team { font-size: 24px; }
-    .row .played { font-size: 14px; }
-    .row .pts .n { font-size: 40px; }
+    .leagues { grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    .league-col { padding: 18px; }
+    .league-head { font-size: 13px; }
+
+    .board { gap: 12px; }
+    .row { grid-template-columns: 58px 1fr auto; padding: 16px 20px; }
+    .row .rank { font-size: 36px; }
+    .row .team { font-size: 21px; }
+    .row .pts .n { font-size: 34px; }
 
     .lesson-pick { justify-content: center; }
     .lesson-pick button { width: 76px; padding: 12px 0; }
     .lesson-pick button .nn { font-size: 26px; }
-    .sport-banner { padding: 24px 30px; }
-    .sport-banner .sport { font-size: 32px; }
-    .rounds { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
-    .round-label, .round:first-child .round-label { margin-top: 0; font-size: 13px; }
-    .game { padding: 18px 22px; }
-    .game .side .chip { width: 36px; height: 36px; }
-    .game .side .nm { font-size: 20px; }
-    .ref-line { font-size: 15px; margin-top: 6px; }
+    .sport-banner { padding: 20px 22px; }
+    .sport-banner .sport { font-size: 28px; }
+    .round-label { font-size: 13px; }
+    .game { padding: 16px 18px; }
+    .game .side .chip { width: 34px; height: 34px; }
+    .game .side .nm { font-size: 19px; }
+    .ref-line { font-size: 14px; margin-top: 6px; }
   }
 </style>
 </head>
@@ -226,13 +252,6 @@
           <div class="switch-label">Section</div>
           <div class="seg" id="sectionToggle"><!-- built from SECTIONS --></div>
         </div>
-        <div class="switch-group">
-          <div class="switch-label">League</div>
-          <div class="seg" id="leagueToggle">
-            <button data-league="Performance" class="active">Performance</button>
-            <button data-league="Recreational">Recreational</button>
-          </div>
-        </div>
       </div>
     </div>
   </header>
@@ -240,7 +259,7 @@
   <nav class="view-tabs">
     <div class="view-tabs-inner" id="viewTabs">
       <button data-view="board" class="active">Leaderboard</button>
-      <button data-view="fixtures">Today's fixtures</button>
+      <button data-view="fixtures">Schedule</button>
     </div>
   </nav>
 
@@ -256,7 +275,7 @@
 /* ============================================================
    CONFIG — published Standings CSV, per section and league.
    Each value: Sheet → File → Share → Publish to web → the
-   Standings tab → CSV. Rename the section keys ('Section 1'…)
+   Standings tab → CSV. Rename the section keys ('9(8)'…)
    to your class names if you like — the buttons update to match.
    Leave a URL '' until that sheet is published; its leaderboard
    then shows a friendly "not connected yet" message.
@@ -271,6 +290,9 @@ const SECTIONS = {
     Recreational: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vROoAnYVLt6s8SOjwmBV7gEMz_H4XPLldTS8T55dobbYxILQVgwQDXvmljKGw48ZtxLFWED6r0JjcWI/pub?gid=1299558990&single=true&output=csv'
   }
 };
+
+const LEAGUES = ['Performance', 'Recreational'];
+const LEAGUE_CLASS = { Performance: 'perf', Recreational: 'rec' };
 
 const TEAMS = ['Red', 'Yellow', 'Green', 'Blue', 'Maroon'];
 const TEAM_COLOR = {
@@ -324,12 +346,11 @@ const FIXTURES = {
 const SECTION_KEYS = Object.keys(SECTIONS);
 const state = {
   section: SECTION_KEYS[0],
-  league: 'Performance',
   view: 'board',
   lesson: 1,
   standings: {},   // key(section,league) -> array | null (not loaded)
   error: {},       // key(section,league) -> message
-  loading: false
+  loading: {}      // key(section,league) -> bool
 };
 
 const $main = document.getElementById('main');
@@ -351,13 +372,6 @@ document.getElementById('sectionToggle').addEventListener('click', e => {
   render();
   if (state.view === 'board') ensureLoaded();
 });
-document.getElementById('leagueToggle').addEventListener('click', e => {
-  const b = e.target.closest('button'); if (!b) return;
-  state.league = b.dataset.league;
-  document.querySelectorAll('#leagueToggle button').forEach(x => x.classList.toggle('active', x === b));
-  render();
-  if (state.view === 'board') ensureLoaded();
-});
 document.getElementById('viewTabs').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   state.view = b.dataset.view;
@@ -366,11 +380,19 @@ document.getElementById('viewTabs').addEventListener('click', e => {
   if (state.view === 'board') ensureLoaded();
 });
 
+/* Load whichever league boards for the current section aren't loaded yet. */
 function ensureLoaded() {
-  if (state.standings[key(state.section, state.league)] === undefined ||
-      state.standings[key(state.section, state.league)] === null) {
-    loadStandings(state.section, state.league);
-  }
+  if (state.view !== 'board') return;
+  LEAGUES.forEach(league => {
+    const k = key(state.section, league);
+    if (state.standings[k] === undefined || state.standings[k] === null) {
+      loadStandings(state.section, league);
+    }
+  });
+}
+
+function refreshSection() {
+  LEAGUES.forEach(league => loadStandings(state.section, league));
 }
 
 /* ---------- Data ---------- */
@@ -378,27 +400,29 @@ function loadStandings(section, league) {
   const url = SECTIONS[section][league];
   const k = key(section, league);
   if (!url) { state.standings[k] = []; render(); return; }
-  if (state.loading) return;
-  state.loading = true;
+  if (state.loading[k]) return;
+  state.loading[k] = true;
   state.error[k] = null;
   setRefreshSpin(true);
   const bust = (url.includes('?') ? '&' : '?') + '_=' + Date.now();
   Papa.parse(url + bust, {
     download: true,
     complete: (res) => {
-      state.loading = false; setRefreshSpin(false);
+      state.loading[k] = false; setRefreshSpin(anyLoading());
       try { state.standings[k] = parseStandings(res.data); }
       catch (err) { state.standings[k] = []; state.error[k] = 'Could not read the standings sheet.'; }
       render();
     },
     error: () => {
-      state.loading = false; setRefreshSpin(false);
+      state.loading[k] = false; setRefreshSpin(anyLoading());
       state.standings[k] = [];
       state.error[k] = 'Could not reach the standings sheet. Check the published link and your connection.';
       render();
     }
   });
 }
+
+function anyLoading() { return Object.keys(state.loading).some(k => state.loading[k]); }
 
 function num(v) { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
 
@@ -431,53 +455,61 @@ function refreshIcon() {
   return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>';
 }
 
+/* ----- Leaderboard: both leagues side by side ----- */
 function renderBoard() {
-  const k = key(state.section, state.league);
-  const data = state.standings[k];
-  const err = state.error[k];
+  const sec = state.section;
   const head = `
     <div class="sub">
-      <h2>${state.league} <span class="dim">· ${state.section}</span></h2>
-      <button class="refresh" onclick="loadStandings('${state.section.replace(/'/g,"\\'")}','${state.league}')">${refreshIcon()} Refresh</button>
+      <h2>Standings <span class="dim">· ${sec}</span></h2>
+      <button class="refresh" onclick="refreshSection()">${refreshIcon()} Refresh</button>
     </div>`;
+  const cols = LEAGUES.map(league => `
+    <div class="league-col ${LEAGUE_CLASS[league]}">
+      <div class="league-head">${league}</div>
+      ${leagueBoardInner(sec, league)}
+    </div>`).join('');
+  $main.innerHTML = head + `<div class="leagues">${cols}</div>`;
+}
 
-  if (data === undefined || data === null) {
-    ensureLoaded();
-    $main.innerHTML = head + '<div class="board">' + '<div class="skeleton"></div>'.repeat(5) + '</div>';
-    return;
-  }
+/* Inner content of one league's board column (handles every state). */
+function leagueBoardInner(section, league) {
+  const k = key(section, league);
 
-  if (!SECTIONS[state.section][state.league]) {
-    $main.innerHTML = head + `
-      <div class="state">
-        <div class="big">Standings not connected yet</div>
+  if (!SECTIONS[section][league]) {
+    return `
+      <div class="state mini">
+        <div class="big">Not connected yet</div>
         <div class="hint">
-          Publish the <strong>Standings_${state.league}</strong> tab from ${state.section}'s sheet to the web as CSV,
-          then paste the link into <code>SECTIONS['${state.section}'].${state.league}</code> near the top of this file.<br><br>
-          Fixtures already work — tap <strong>Today's fixtures</strong>.
+          Publish the <strong>Standings_${league}</strong> tab from ${section}'s sheet as CSV,
+          then paste the link into <code>SECTIONS['${section}'].${league}</code>.
         </div>
       </div>`;
-    return;
   }
 
-  let body = '';
-  if (err) body += `<div class="err-banner">${err}</div>`;
+  const data = state.standings[k];
+  const err = state.error[k];
+
+  if (data === undefined || data === null) {
+    return '<div class="board">' + '<div class="skeleton"></div>'.repeat(5) + '</div>';
+  }
+
+  let out = '';
+  if (err) out += `<div class="err-banner">${err}</div>`;
 
   if (!data.length) {
-    body += `
-      <div class="state">
+    out += `
+      <div class="state mini">
         <div class="big">No results in yet</div>
-        <div class="hint">Once a teacher types scores into the sheet, standings appear here within a minute or two. Tap refresh.</div>
+        <div class="hint">Standings appear here once a teacher enters scores. Tap refresh.</div>
       </div>`;
-    $main.innerHTML = head + body;
-    return;
+    return out;
   }
 
   const leadPts = data[0].points;
-  body += '<div class="board">';
+  out += '<div class="board">';
   data.forEach((s, i) => {
     const isLead = s.points === leadPts && leadPts > 0;
-    body += `
+    out += `
       <div class="row${isLead ? ' lead' : ''}" style="--team:${TEAM_COLOR[s.team]}">
         <div class="rank">${i + 1}</div>
         <div class="who">
@@ -487,43 +519,54 @@ function renderBoard() {
         <div class="pts"><div class="n">${s.points}</div><div class="lbl">pts</div></div>
       </div>`;
   });
-  body += '</div>';
-  $main.innerHTML = head + body;
+  out += '</div>';
+  return out;
 }
 
+/* ----- Schedule: both leagues side by side (shared lesson + matchups) ----- */
 function renderFixtures() {
   const L = state.lesson;
-  const info = SPORTS[state.league][L];
+  const sec = state.section;
 
-  let html = `<div class="sub"><h2>Today's fixtures</h2></div><div class="lesson-pick">`;
+  let html = `<div class="sub"><h2>Schedule <span class="dim">· ${sec}</span></h2></div><div class="lesson-pick">`;
   for (let n = 1; n <= 5; n++) {
     html += `<button class="${n === L ? 'active' : ''}" onclick="pickLesson(${n})"><span class="ln">L</span><span class="nn">${n}</span></button>`;
   }
   html += `</div>`;
 
-  html += `
-    <div class="sport-banner">
-      <div>
-        <div class="lbl">Lesson ${L} · ${state.section} · ${state.league}</div>
-        <div class="sport">${info.sport}</div>
+  const cols = LEAGUES.map(league => {
+    const info = SPORTS[league][L];
+    return `
+    <div class="league-col ${LEAGUE_CLASS[league]}">
+      <div class="league-head">${league}</div>
+      <div class="sport-banner">
+        <div>
+          <div class="lbl">Lesson ${L}</div>
+          <div class="sport">${info.sport}</div>
+        </div>
+        <div class="loc ${info.loc.toLowerCase()}">${info.loc === 'Out' ? '🌳 Outside' : '🏠 Inside'}</div>
       </div>
-      <div class="loc ${info.loc.toLowerCase()}">${info.loc === 'Out' ? '🌳 Outside' : '🏠 Inside'}</div>
+      <div class="rounds">${roundsHTML(L)}</div>
     </div>`;
+  }).join('');
 
-  html += `<div class="rounds">`;
+  html += `<div class="leagues">${cols}</div>`;
+  $main.innerHTML = html;
+}
+
+function roundsHTML(L) {
+  let h = '';
   [1, 2].forEach(rd => {
     const r = FIXTURES[L][rd];
-    html += `<div class="round"><div class="round-label">Round ${rd}</div>`;
-    r.games.forEach(g => html += gameCard(g[0], g[1]));
-    html += `
+    h += `<div class="round"><div class="round-label">Round ${rd}</div>`;
+    r.games.forEach(g => h += gameCard(g[0], g[1]));
+    h += `
       <div class="ref-line">
         🟡 Referee:
         <span class="ref-chip"><span class="dot" style="background:${TEAM_COLOR[r.ref]}"></span>${r.ref}</span>
       </div></div>`;
   });
-  html += `</div>`;
-
-  $main.innerHTML = html;
+  return h;
 }
 
 function gameCard(a, b) {
@@ -537,16 +580,21 @@ function gameCard(a, b) {
 
 function pickLesson(n) { state.lesson = n; render(); }
 
+/* Footer status line — covers both leagues in the current section. */
 function renderChampLine() {
-  const data = state.standings[key(state.section, state.league)];
   const el = document.getElementById('champLine');
-  if (!data || !data.length) { el.textContent = ''; return; }
-  const allDone = data.every(s => s.played >= 8);
-  if (allDone && data[0].points > (data[1] ? data[1].points : 0)) {
-    el.textContent = `🏆 ${state.section} ${state.league} champions: ${data[0].team}`;
-  } else if (data[0].points > 0) {
-    el.textContent = `Leading ${state.section} ${state.league}: ${data[0].team}`;
-  } else { el.textContent = ''; }
+  const parts = [];
+  LEAGUES.forEach(league => {
+    const data = state.standings[key(state.section, league)];
+    if (!data || !data.length) return;
+    const allDone = data.every(s => s.played >= 8);
+    if (allDone && data[0].points > (data[1] ? data[1].points : 0)) {
+      parts.push(`🏆 ${league}: ${data[0].team}`);
+    } else if (data[0].points > 0) {
+      parts.push(`${league} leader: ${data[0].team}`);
+    }
+  });
+  el.textContent = parts.length ? `${state.section} — ` + parts.join('   ·   ') : '';
 }
 
 /* ---------- Boot ---------- */
