@@ -147,6 +147,12 @@
   .row .pts { text-align: right; }
   .row .pts .n { font-weight: 800; font-size: 32px; line-height: 1; }
   .row .pts .lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-mute); }
+  .row .awards { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 7px; }
+  .row .awards .aw {
+    font-size: 12px; font-weight: 700; color: var(--ink-soft);
+    background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; white-space: nowrap;
+  }
+  .row .awards .aw-pts { font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 0.02em; }
 
   /* ----- Schedule / fixtures ----- */
   .lesson-pick { display: flex; gap: 7px; margin-bottom: 18px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
@@ -266,7 +272,7 @@
   <main id="main"><!-- rendered --></main>
 
   <footer>
-    <div>Win 3 · Draw 1 · Loss 0 — points accumulate across all five lessons.</div>
+    <div>Win 3 · Draw 1 · Loss 0 · Award 3 (Participation / Sportsmanship) — points accumulate across all five lessons.</div>
     <div class="champs" id="champLine"></div>
   </footer>
 </div>
@@ -279,6 +285,19 @@
    to your class names if you like — the buttons update to match.
    Leave a URL '' until that sheet is published; its leaderboard
    then shows a friendly "not connected yet" message.
+
+   Expected Standings columns, left → right:
+     A  Team
+     B  Games played
+     C  Match points (wins/draws — NOT including awards)
+     D  Rank (optional, unused for display)
+     E  Active-Participation awards  (a COUNT, e.g. 0, 1, 2 …)
+     F  Sportsmanship awards         (a COUNT)
+   Each award counts the same as a win: +AWARD_POINTS points.
+   The app adds (E + F) × AWARD_POINTS on top of the match points
+   and shows the breakdown on the row. To grant an award, just
+   increase that team's count in column E or F — award as many as
+   you like. Columns E/F are optional; missing/blank = 0.
    ============================================================ */
 const SECTIONS = {
   '9(8)': {
@@ -293,6 +312,9 @@ const SECTIONS = {
 
 const LEAGUES = ['Performance', 'Recreational'];
 const LEAGUE_CLASS = { Performance: 'perf', Recreational: 'rec' };
+
+/* Each award (Active Participation / Sportsmanship) is worth the same as a win. */
+const AWARD_POINTS = 3;
 
 const TEAMS = ['Red', 'Yellow', 'Green', 'Blue', 'Maroon'];
 const TEAM_COLOR = {
@@ -433,8 +455,18 @@ function parseStandings(rows) {
     const team = String(r[0]).trim();
     const canon = TEAMS.find(t => t.toLowerCase() === team.toLowerCase());
     if (!canon) return;
+    const matchPoints   = num(r[2]);
+    const participation = num(r[4]);   // col E — count
+    const sportsmanship = num(r[5]);   // col F — count
+    const awardPts = (participation + sportsmanship) * AWARD_POINTS;
     out.push({
-      team: canon, played: num(r[1]), points: num(r[2]),
+      team: canon,
+      played: num(r[1]),
+      matchPoints,
+      participation,
+      sportsmanship,
+      awardPts,
+      points: matchPoints + awardPts,   // total shown on the leaderboard
       rank: r[3] != null && String(r[3]).trim() !== '' ? num(r[3]) : null
     });
   });
@@ -515,12 +547,22 @@ function leagueBoardInner(section, league) {
         <div class="who">
           <div class="team"><span class="dot"></span>${s.team}</div>
           <div class="played">${s.played} game${s.played === 1 ? '' : 's'} played</div>
+          ${awardsLine(s)}
         </div>
         <div class="pts"><div class="n">${s.points}</div><div class="lbl">pts</div></div>
       </div>`;
   });
   out += '</div>';
   return out;
+}
+
+/* Award breakdown shown under a team — only when it has any awards. */
+function awardsLine(s) {
+  if (!s.participation && !s.sportsmanship) return '';
+  let badges = '';
+  if (s.participation) badges += `<span class="aw" title="Active Participation awards (3 pts each)">⭐ ${s.participation}</span>`;
+  if (s.sportsmanship) badges += `<span class="aw" title="Sportsmanship awards (3 pts each)">🤝 ${s.sportsmanship}</span>`;
+  return `<div class="awards">${badges}<span class="aw-pts">+${s.awardPts} pts</span></div>`;
 }
 
 /* ----- Schedule: both leagues side by side (shared lesson + matchups) ----- */
